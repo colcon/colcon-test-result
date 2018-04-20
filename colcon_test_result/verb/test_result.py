@@ -49,19 +49,7 @@ class TestResultVerb(VerbExtensionPoint):
             context.args.build_base,
             get_testcases=context.args.verbose)
 
-        summary = Result('Summary')
-        for result in results:
-            summary.add_result_counts(result)
-
-        print(summary)
-
         # output stats from individual result files
-        if (
-            any(r.error_count or r.failure_count for r in results) or
-            (context.args.all and results)
-        ):
-            print()
-
         for result in results:
             if result.error_count or result.failure_count or context.args.all:
                 print(result)
@@ -93,6 +81,18 @@ class TestResultVerb(VerbExtensionPoint):
                         'failure message', testcase.failure_messages)
                     _output_messages('stdout output', testcase.system_outs)
                     _output_messages('stderr output', testcase.system_errs)
+
+        if (
+            any(r.error_count or r.failure_count for r in results) or
+            (context.args.all and results)
+        ):
+            print()
+
+        summary = Result('Summary')
+        for result in results:
+            summary.add_result_counts(result)
+
+        print(summary)
 
         return 1 if summary.error_count or summary.failure_count else 0
 
