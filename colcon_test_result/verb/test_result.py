@@ -34,7 +34,7 @@ class TestResultVerb(VerbExtensionPoint):
             '--build-base',
             type=_argparse_existing_dir,
             default='build',
-            help='The base path for all build directorys (default: build)')
+            help='The base path for all build directories (default: build)')
         parser.add_argument(
             '--all',
             action='store_true',
