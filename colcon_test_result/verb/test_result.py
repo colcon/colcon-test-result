@@ -31,10 +31,10 @@ class TestResultVerb(VerbExtensionPoint):
 
     def add_arguments(self, *, parser):  # noqa: D102
         parser.add_argument(
-            '--build-base',
+            '--test-result-base',
             type=_argparse_existing_dir,
             default='build',
-            help='The base path for all build directories (default: build)')
+            help='The base path for all test results (default: build)')
         parser.add_argument(
             '--all',
             action='store_true',
@@ -46,7 +46,7 @@ class TestResultVerb(VerbExtensionPoint):
 
     def main(self, *, context):  # noqa: D102
         results = collect_test_results(
-            context.args.build_base,
+            context.args.test_result_base,
             get_testcases=context.args.verbose)
 
         # output stats from individual result files
