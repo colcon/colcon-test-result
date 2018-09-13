@@ -129,7 +129,7 @@ def collect_test_results(basepath, *, get_testcases=False):
             try:
                 result = parse_junit_xml(path, get_testcases=get_testcases)
             except ParseError as e:
-                logger.warn("Skipping '{path}': {e}".format_map(locals()))
+                logger.warning("Skipping '{path}': {e}".format_map(locals()))
                 continue
             except ValueError as e:
                 logger.debug("Skipping '{path}': {e}".format_map(locals()))
