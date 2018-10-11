@@ -188,7 +188,7 @@ def parse_junit_xml(path, *, get_testcases=False):
             value = default
         try:
             value = int(value)
-        except ValueError as e:
+        except ValueError:
             raise ValueError(
                 "the '{attribute}' attribute should be an integer"
                 .format_map(locals()))
