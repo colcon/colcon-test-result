@@ -128,13 +128,13 @@ def collect_test_results(basepath, *, get_testcases=False):
             path = os.path.join(dirpath, filename)
             try:
                 result = parse_junit_xml(path, get_testcases=get_testcases)
-            except ParseError as e:
+            except ParseError as e:  # noqa: F841
                 logger.warning("Skipping '{path}': {e}".format_map(locals()))
                 continue
-            except ValueError as e:
+            except ValueError as e:  # noqa: F841
                 logger.debug("Skipping '{path}': {e}".format_map(locals()))
                 continue
-            except Exception as e:
+            except Exception as e:  # noqa: F841
                 exc = traceback.format_exc()
                 logger.error(
                     "Skipping '{path}': {e}\n{exc}".format_map(locals()))
