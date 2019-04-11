@@ -40,6 +40,11 @@ class TestResultVerb(VerbExtensionPoint):
             action='store_true',
             help='Show all test result file (even without errors / failures)')
         parser.add_argument(
+            '--result-files-only',
+            action='store_true',
+            help='Print only the path to the result files.'
+                 'Use with --all to get files without errors / failures')
+        parser.add_argument(
             '--verbose',
             action='store_true',
             help='Show additional information for errors / failures')
@@ -52,7 +57,11 @@ class TestResultVerb(VerbExtensionPoint):
         # output stats from individual result files
         for result in results:
             if result.error_count or result.failure_count or context.args.all:
-                print(result)
+                if context.args.result_files_only:
+                    print(result.path)
+                else:
+                    print(result)
+
                 if not context.args.verbose:
                     continue
 
