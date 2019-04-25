@@ -185,6 +185,7 @@ def parse_junit_xml(path, *, get_testcases=False):
         ('error_count', 'errors', 0),
         ('failure_count', 'failures', None),
         ('skipped_count', 'skip', 0),
+        ('skipped_count', 'skipped', 0),
         ('skipped_count', 'disabled', 0),
     ):
         try:
