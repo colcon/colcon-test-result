@@ -9,7 +9,6 @@ google
 googletest
 https
 iterdir
-junit
 noqa
 pathlib
 plugin
@@ -23,3 +22,5 @@ testsuite
 testsuites
 thomas
 traceback
+tuples
+xunit
