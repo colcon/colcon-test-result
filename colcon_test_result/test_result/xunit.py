@@ -1,7 +1,6 @@
-# Copyright 2016-2018 Dirk Thomas
+# Copyright 2016-2019 Dirk Thomas
 # Licensed under the Apache License, Version 2.0
 
-import argparse
 import os
 import traceback
 from xml.etree.ElementTree import ElementTree
@@ -9,155 +8,64 @@ from xml.etree.ElementTree import ParseError
 
 from colcon_core.logging import colcon_logger
 from colcon_core.plugin_system import satisfies_version
-from colcon_core.verb import VerbExtensionPoint
+from colcon_test_result.test_result import Result
+from colcon_test_result.test_result import TestResultExtensionPoint
 
 logger = colcon_logger.getChild(__name__)
 
 
-class TestResultVerb(VerbExtensionPoint):
+class XunitTestResult(TestResultExtensionPoint):
     """
-    Collect the jUnit results generated when testing a set of packages.
+    Collect the xUnit results generated when testing a set of packages.
 
     It recursively crawls for XML files under the passed build base.
-    Each XML file is being parsed and if it has the structure of a jUnit result
+    Each XML file is being parsed and if it has the structure of a xUnit result
     file the statistics are being extracted.
     """
 
-    __test__ = False  # prevent the class to falsely be identified as a test
-
     def __init__(self):  # noqa: D107
         super().__init__()
-        satisfies_version(VerbExtensionPoint.EXTENSION_POINT_VERSION, '^1.0')
+        satisfies_version(
+            TestResultExtensionPoint.EXTENSION_POINT_VERSION, '^1.0')
 
-    def add_arguments(self, *, parser):  # noqa: D102
-        parser.add_argument(
-            '--test-result-base',
-            type=_argparse_existing_dir,
-            default='build',
-            help='The base path for all test results (default: build)')
-        parser.add_argument(
-            '--all',
-            action='store_true',
-            help='Show all test result file (even without errors / failures)')
-        parser.add_argument(
-            '--result-files-only',
-            action='store_true',
-            help='Print only the path to the result files.'
-                 'Use with --all to get files without errors / failures')
-        parser.add_argument(
-            '--verbose',
-            action='store_true',
-            help='Show additional information for errors / failures')
+    def get_test_results(self, basepath, *, collect_details):  # noqa: D102
+        results = set()
 
-    def main(self, *, context):  # noqa: D102
-        results = collect_test_results(
-            context.args.test_result_base,
-            get_testcases=context.args.verbose)
+        for dirpath, dirnames, filenames in os.walk(str(basepath)):
+            # skip subdirectories starting with a dot
+            dirnames[:] = filter(lambda d: not d.startswith('.'), dirnames)
+            dirnames.sort()
 
-        # output stats from individual result files
-        for result in results:
-            if result.error_count or result.failure_count or context.args.all:
-                if context.args.result_files_only:
-                    print(result.path)
-                else:
-                    print(result)
-
-                if not context.args.verbose:
+            for filename in sorted(filenames):
+                if not filename.endswith('.xml'):
                     continue
 
-                for testcase in result.testcases:
-                    if (
-                        not testcase.error_messages and
-                        not testcase.failure_messages
-                    ):
-                        continue
-
-                    # print label of testcase
-                    msg_parts = []
-                    if testcase.classname:
-                        msg_parts.append(testcase.classname)
-                    if testcase.name:
-                        msg_parts.append(testcase.name)
-                    if testcase.file:
-                        suffix = ':' + testcase.line if testcase.line else ''
-                        msg_parts.append(
-                            '({testcase.file}{suffix})'.format_map(locals()))
-                    print('-', ' '.join(msg_parts))
-
-                    # print more information
-                    _output_messages('error message', testcase.error_messages)
-                    _output_messages(
-                        'failure message', testcase.failure_messages)
-                    _output_messages('stdout output', testcase.system_outs)
-                    _output_messages('stderr output', testcase.system_errs)
-
-        if (
-            any(r.error_count or r.failure_count for r in results) or
-            (context.args.all and results)
-        ):
-            print()
-
-        summary = Result('Summary')
-        for result in results:
-            summary.add_result_counts(result)
-
-        print(summary)
-
-        return 1 if summary.error_count or summary.failure_count else 0
+                path = os.path.join(dirpath, filename)
+                try:
+                    result = parse_xunit_xml(
+                        path, get_testcases=collect_details)
+                except ParseError as e:  # noqa: F841
+                    logger.warning(
+                        "Skipping '{path}': {e}".format_map(locals()))
+                    continue
+                except ValueError as e:  # noqa: F841
+                    logger.debug("Skipping '{path}': {e}".format_map(locals()))
+                    continue
+                except Exception as e:  # noqa: F841
+                    exc = traceback.format_exc()
+                    logger.error(
+                        "Skipping '{path}': {e}\n{exc}".format_map(locals()))
+                    continue
+                results.add(result)
+        return results
 
 
-def _argparse_existing_dir(path):
-    if not os.path.exists(path):
-        raise argparse.ArgumentTypeError("Path '%s' does not exist" % path)
-    if not os.path.isdir(path):
-        raise argparse.ArgumentTypeError("Path '%s' is not a directory" % path)
-    return path
-
-
-def collect_test_results(basepath, *, get_testcases=False):
+def parse_xunit_xml(path, *, get_testcases=False):
     """
-    Collect test results by parsing all XML files in a given path.
-
-    Each file is interpreted as a JUnit result file.
-
-    :param str basepath: the basepath to recursively crawl
-    :returns: list of test results
-    :rtype: list of :py:class:`colcon_core.verb.test_results.Result`
-    """
-    results = []
-    for dirpath, dirnames, filenames in os.walk(str(basepath)):
-        # skip subdirectories starting with a dot
-        dirnames[:] = filter(lambda d: not d.startswith('.'), dirnames)
-        dirnames.sort()
-
-        for filename in sorted(filenames):
-            if not filename.endswith('.xml'):
-                continue
-
-            path = os.path.join(dirpath, filename)
-            try:
-                result = parse_junit_xml(path, get_testcases=get_testcases)
-            except ParseError as e:  # noqa: F841
-                logger.warning("Skipping '{path}': {e}".format_map(locals()))
-                continue
-            except ValueError as e:  # noqa: F841
-                logger.debug("Skipping '{path}': {e}".format_map(locals()))
-                continue
-            except Exception as e:  # noqa: F841
-                exc = traceback.format_exc()
-                logger.error(
-                    "Skipping '{path}': {e}\n{exc}".format_map(locals()))
-                continue
-            results.append(result)
-    return results
-
-
-def parse_junit_xml(path, *, get_testcases=False):
-    """
-    Parse an XML file and interpret it as a jUnit result file.
+    Parse an XML file and interpret it as a xUnit result file.
 
     See
-    https://github.com/google/googletest/blob/master/googletest/docs/AdvancedGuide.md#generating-an-xml-report
+    https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#generating-an-xml-report
     for an example of the format.
 
     :param str path: the path of the XML file
@@ -173,7 +81,7 @@ def parse_junit_xml(path, *, get_testcases=False):
     tree = ElementTree()
     root = tree.parse(path)
 
-    # check if the root tag looks like a jUnit file
+    # check if the root tag looks like a xUnit file
     if root.tag not in ['testsuite', 'testsuites']:
         raise ValueError(
             "the root tag is neither 'testsuite' nor 'testsuites'")
@@ -209,17 +117,17 @@ def parse_junit_xml(path, *, get_testcases=False):
         setattr(result, slot, getattr(result, slot) + value)
 
     if get_testcases:
-        result.testcases = parse_testcases(root)
+        result.details += parse_testcases(root)
 
     return result
 
 
 def parse_testcases(node):
     """
-    Parse the statistics of all recursive testcases.
+    Parse information about testcases with errors and failures.
 
     :param node: The XML node
-    :returns: The testcases
+    :returns: A string for each testcase
     :rtype: list
     """
     testcases = []
@@ -255,65 +163,11 @@ def parse_testcases(node):
                 testcase.system_outs.append(child2.text)
             elif child2.tag == 'system-err':
                 testcase.system_errs.append(child2.text)
-        testcases.append(testcase)
+
+        if testcase.error_messages or testcase.failure_messages:
+            testcases.append(str(testcase))
+
     return testcases
-
-
-def _output_messages(label, messages):
-    if messages:
-        print(' ', '<<<', label)
-        for message in messages:
-            for line in message.strip('\n\r').splitlines():
-                print(' ', ' ', line)
-        print(' ', '>>>')
-
-
-class Result:
-    """Aggregated statistics from a set of test cases."""
-
-    __slots__ = (
-        'path',
-        'test_count',
-        'error_count',
-        'failure_count',
-        'skipped_count',
-        'testcases',
-    )
-
-    def __init__(self, path):  # noqa: D107
-        self.path = path
-        self.test_count = 0
-        self.error_count = 0
-        self.failure_count = 0
-        self.skipped_count = 0
-        self.testcases = None
-
-    def add_result_counts(self, result):
-        """
-        Add the statistics from another result to this one.
-
-        The `path` and the `testcases` are not changed.
-
-        :param result: The other result
-        """
-        self.test_count += result.test_count
-        self.error_count += result.error_count
-        self.failure_count += result.failure_count
-        self.skipped_count += result.skipped_count
-
-    def __str__(self):  # noqa: D105
-        data = {}
-        for slot in self.__slots__:
-            data[slot] = getattr(self, slot)
-            if slot in ('test_count', 'error_count', 'failure_count'):
-                data[slot + '_plural'] = 's' if data[slot] != 1 else ''
-        return \
-            '{path}: ' \
-            '{test_count} test{test_count_plural}, ' \
-            '{error_count} error{error_count_plural}, ' \
-            '{failure_count} failure{failure_count_plural}, ' \
-            '{skipped_count} skipped' \
-            .format(**data)
 
 
 class Testcase:
@@ -345,3 +199,36 @@ class Testcase:
         self.failure_messages = []
         self.system_outs = []
         self.system_errs = []
+
+    def __str__(self):  # noqa: D105
+        # label of testcase
+        msg_parts = []
+        if self.classname:
+            msg_parts.append(self.classname)
+        if self.name:
+            msg_parts.append(self.name)
+        if self.file:
+            suffix = ':' + self.line if self.line else ''
+            msg_parts.append(
+                '({self.file}{suffix})'.format_map(locals()))
+        msg_parts = [' '.join(msg_parts)]
+
+        # more information
+        msg_parts += _get_messages('error message', self.error_messages)
+        msg_parts += _get_messages(
+            'failure message', self.failure_messages)
+        msg_parts += _get_messages('stdout output', self.system_outs)
+        msg_parts += _get_messages('stderr output', self.system_errs)
+
+        return '\n'.join(msg_parts)
+
+
+def _get_messages(label, messages):
+    lines = []
+    if messages:
+        lines.append('<<< ' + label)
+        for message in messages:
+            for line in message.strip('\n\r').splitlines():
+                lines.append('  ' + line)
+        lines.append('>>>')
+    return lines
