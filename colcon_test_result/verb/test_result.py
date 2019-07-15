@@ -72,7 +72,8 @@ class TestResultVerb(VerbExtensionPoint):
         for result in results:
             summary.add_result(result)
 
-        print(summary)
+        if not context.args.result_files_only:
+            print(summary)
 
         return 1 if summary.error_count or summary.failure_count else 0
 
