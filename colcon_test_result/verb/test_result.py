@@ -43,33 +43,30 @@ class TestResultVerb(VerbExtensionPoint):
             help='Show additional information for errors / failures')
 
     def main(self, *, context):  # noqa: D102
-        results = get_test_results(
+        results = list(get_test_results(
             context.args.test_result_base,
-            collect_details=context.args.verbose)
+            collect_details=context.args.verbose))
 
-        result_tuples = [(r.path, r) for r in results]
+        results.sort(key=lambda r: r.path)
+        results = [r for r in results if r.failure_count or context.args.all]
 
-        # output stats from individual result files
-        for _, result in sorted(result_tuples):
-            if result.error_count or result.failure_count or context.args.all:
-                if context.args.result_files_only:
-                    print(result.path)
-                else:
-                    print(result)
-                    if context.args.verbose:
-                        for detail in result.details:
-                            for i, line in enumerate(detail.splitlines()):
-                                print('-' if i == 0 else ' ', line)
+        if context.args.result_files_only:
+            for result in results:
+                print(result.path)
+        else:
+            for result in results:
+                print(result)
+                if context.args.verbose:
+                    for detail in result.details:
+                        for i, line in enumerate(detail.splitlines()):
+                            print('-' if i == 0 else ' ', line)
 
         summary = Result('Summary')
         for result in results:
             summary.add_result(result)
 
         if not context.args.result_files_only:
-            if (
-                any(r.error_count or r.failure_count for r in results) or
-                (context.args.all and results)
-            ):
+            if results:
                 print()
             print(summary)
 
