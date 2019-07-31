@@ -35,7 +35,7 @@ class TestResultVerb(VerbExtensionPoint):
         parser.add_argument(
             '--result-files-only',
             action='store_true',
-            help='Print only the path to the result files.'
+            help='Print only the path to the result files. '
                  'Use with --all to get files without errors / failures')
         parser.add_argument(
             '--verbose',
