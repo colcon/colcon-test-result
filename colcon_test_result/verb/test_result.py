@@ -61,15 +61,14 @@ class TestResultVerb(VerbExtensionPoint):
                             for i, line in enumerate(detail.splitlines()):
                                 print('-' if i == 0 else ' ', line)
 
-
         summary = Result('Summary')
         for result in results:
             summary.add_result(result)
 
         if not context.args.result_files_only:
             if (
-                    any(r.error_count or r.failure_count for r in results) or
-                    (context.args.all and results)
+                any(r.error_count or r.failure_count for r in results) or
+                (context.args.all and results)
             ):
                 print()
             print(summary)
