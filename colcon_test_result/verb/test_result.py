@@ -47,7 +47,8 @@ class TestResultVerb(VerbExtensionPoint):
             context.args.test_result_base,
             collect_details=context.args.verbose))
 
-        results = [r for r in results if r.error_count or r.failure_count or context.args.all]
+        results = [r for r in results if
+                   r.error_count or r.failure_count or context.args.all]
         results.sort(key=lambda r: r.path)
 
         if context.args.result_files_only:
