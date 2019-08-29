@@ -43,12 +43,12 @@ class TestResultVerb(VerbExtensionPoint):
             help='Show additional information for errors / failures')
 
     def main(self, *, context):  # noqa: D102
-        results = list(get_test_results(
+        all_results = list(get_test_results(
             context.args.test_result_base,
             collect_details=context.args.verbose))
 
         results = [
-            r for r in results
+            r for r in all_results
             if r.error_count or r.failure_count or context.args.all]
         results.sort(key=lambda r: r.path)
 
@@ -64,7 +64,7 @@ class TestResultVerb(VerbExtensionPoint):
                             print('-' if i == 0 else ' ', line)
 
         summary = Result('Summary')
-        for result in results:
+        for result in all_results:
             summary.add_result(result)
 
         if not context.args.result_files_only:
