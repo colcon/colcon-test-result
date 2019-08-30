@@ -16,6 +16,8 @@ pytest
 rtype
 scspell
 setuptools
+tcflush
+tciflush
 testcase
 testcases
 testsuite
