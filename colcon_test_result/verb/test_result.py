@@ -3,6 +3,7 @@
 
 import argparse
 import os
+import sys
 
 from colcon_core.logging import colcon_logger
 from colcon_core.plugin_system import satisfies_version
@@ -41,11 +42,43 @@ class TestResultVerb(VerbExtensionPoint):
             '--verbose',
             action='store_true',
             help='Show additional information for errors / failures')
+        parser.add_argument(
+            '--delete',
+            action='store_true',
+            help='Delete all result files. This might include additional '
+                 'files beside what is listed by --result-files-only. An '
+                 'interactive prompt will ask for confirmation')
+        parser.add_argument(
+            '--delete-yes',
+            action='store_true',
+            help='Same as --delete without an interactive confirmation')
 
     def main(self, *, context):  # noqa: D102
+        all_files = set() \
+            if (context.args.delete or context.args.delete_yes) else None
         all_results = list(get_test_results(
             context.args.test_result_base,
-            collect_details=context.args.verbose))
+            collect_details=context.args.verbose,
+            files=all_files))
+
+        if context.args.delete or context.args.delete_yes:
+            if not all_files:
+                print('No result files found to delete')
+                return 0
+            for path in sorted(all_files):
+                print('-', path)
+            while not context.args.delete_yes:
+                response = _safe_input(
+                    'Delete these %d files? [y/n] ' % len(all_files))
+                if response.lower() == 'y':
+                    break
+                if response.lower() == 'n':
+                    print('Aborted')
+                    return 0
+            for path in sorted(all_files):
+                os.remove(path)
+            print('Deleted %d files' % len(all_files))
+            return 0
 
         results = [
             r for r in all_results
@@ -81,3 +114,15 @@ def _argparse_existing_dir(path):
     if not os.path.isdir(path):
         raise argparse.ArgumentTypeError("Path '%s' is not a directory" % path)
     return path
+
+
+def _safe_input(prompt=None):
+    # flush stdin before checking for input
+    try:
+        from termios import tcflush
+        from termios import TCIFLUSH
+        tcflush(sys.stdin, TCIFLUSH)
+    except ImportError:
+        # fallback if not supported on some platforms
+        pass
+    return input(prompt)

@@ -1,6 +1,7 @@
 # Copyright 2016-2019 Dirk Thomas
 # Licensed under the Apache License, Version 2.0
 
+import inspect
 from pathlib import Path
 import traceback
 
@@ -73,7 +74,7 @@ class TestResultExtensionPoint:
     """The version of the test result extension interface."""
     EXTENSION_POINT_VERSION = '1.0'
 
-    def get_test_results(self, basepath, *, collect_details):
+    def get_test_results(self, basepath, *, collect_details, files=None):
         """
         Get all test results under the given basepath.
 
@@ -82,6 +83,8 @@ class TestResultExtensionPoint:
         :param basepath: The basepath to crawl for test results
         :param collect_details: A flag if details for errors and failures
           should be collected
+        :param files: If passed the argument must be a set and it is being
+          populated with all files providing result information
         :returns: A set of Result instances
         """
         raise NotImplementedError()
@@ -101,13 +104,15 @@ def get_test_result_extensions(*, exclude_names=None):
     return order_extensions_by_name(extensions)
 
 
-def get_test_results(basepath, *, collect_details):
+def get_test_results(basepath, *, collect_details, files=None):
     """
     Get the test results.
 
     :param basepath: The basepath to collect test results from
     :param collect_details: A flag if details for errors and failures
       should be collected
+    :param files: If passed the argument must be a set and it is being
+      populated with all files providing result information
     :returns: A set of Result instances
     """
     extensions = get_test_result_extensions()
@@ -115,9 +120,16 @@ def get_test_results(basepath, *, collect_details):
     all_test_results = set()
     for extension in extensions.values():
         logger.log(1, 'get_test_results(%s)', extension.TEST_RESULT_NAME)
+
+        func = extension.get_test_results
+        signature = inspect.signature(func)
+        kwargs = {'collect_details': collect_details}
+        if 'files' in signature.parameters:
+            kwargs['files'] = files
+
         try:
-            test_results = extension.get_test_results(
-                Path(basepath), collect_details=collect_details)
+            test_results = func(
+                Path(basepath), **kwargs)
             assert isinstance(test_results, set), \
                 'get_test_results() should return a set'
         except Exception as e:  # noqa: F841

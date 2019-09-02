@@ -28,7 +28,9 @@ class XunitTestResult(TestResultExtensionPoint):
         satisfies_version(
             TestResultExtensionPoint.EXTENSION_POINT_VERSION, '^1.0')
 
-    def get_test_results(self, basepath, *, collect_details):  # noqa: D102
+    def get_test_results(
+        self, basepath, *, collect_details, files=None
+    ):  # noqa: D102
         results = set()
 
         for dirpath, dirnames, filenames in os.walk(str(basepath)):
@@ -57,6 +59,8 @@ class XunitTestResult(TestResultExtensionPoint):
                         "Skipping '{path}': {e}\n{exc}".format_map(locals()))
                     continue
                 results.add(result)
+                if files is not None:
+                    files.add(path)
         return results
 
 
