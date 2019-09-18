@@ -85,13 +85,26 @@ def parse_xunit_xml(path, *, get_testcases=False):
     tree = ElementTree()
     root = tree.parse(path)
 
-    # check if the root tag looks like a xUnit file
-    if root.tag not in ['testsuite', 'testsuites']:
+    result = Result(path)
+
+    if root.tag == 'testsuites':
+        for child in root:
+            if child.tag == 'testsuite':
+                result.add_result(
+                    _get_testsuite_result(child, get_testcases=get_testcases))
+    elif root.tag == 'testsuite':
+        result.add_result(
+            _get_testsuite_result(root, get_testcases=get_testcases))
+    else:
         raise ValueError(
             "the root tag is neither 'testsuite' nor 'testsuites'")
 
+    return result
+
+
+def _get_testsuite_result(node, *, get_testcases=False):
     # extract the integer values from various attributes
-    result = Result(path)
+    result = Result('')
     for slot, attribute, default in (
         ('test_count', 'tests', None),
         ('error_count', 'errors', 0),
@@ -101,7 +114,7 @@ def parse_xunit_xml(path, *, get_testcases=False):
         ('skipped_count', 'disabled', 0),
     ):
         try:
-            value = root.attrib[attribute]
+            value = node.attrib[attribute]
         except KeyError:
             if default is None:
                 raise ValueError(
@@ -121,7 +134,7 @@ def parse_xunit_xml(path, *, get_testcases=False):
         setattr(result, slot, getattr(result, slot) + value)
 
     if get_testcases:
-        result.details += parse_testcases(root)
+        result.details += parse_testcases(node)
 
     return result
 
