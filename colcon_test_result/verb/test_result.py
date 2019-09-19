@@ -34,14 +34,20 @@ class TestResultVerb(VerbExtensionPoint):
             action='store_true',
             help='Show all test result files (even without errors / failures)')
         parser.add_argument(
+            '--result-files-only',
+            action='store_true',
+            help='Print only the paths of the result files. '
+                 'Use with --all to include files without errors / failures')
+        parser.add_argument(
             '--verbose',
             action='store_true',
             help='Show additional information for errors / failures')
         parser.add_argument(
             '--delete',
             action='store_true',
-            help='Delete all result files. An interactive prompt will ask for '
-                 'confirmation')
+            help='Delete all result files. This might include additional '
+                 'files beside what is listed by --result-files-only. An '
+                 'interactive prompt will ask for confirmation')
         parser.add_argument(
             '--delete-yes',
             action='store_true',
@@ -79,20 +85,25 @@ class TestResultVerb(VerbExtensionPoint):
             if r.error_count or r.failure_count or context.args.all]
         results.sort(key=lambda r: r.path)
 
-        for result in results:
-            print(result)
-            if context.args.verbose:
-                for detail in result.details:
-                    for i, line in enumerate(detail.splitlines()):
-                        print('-' if i == 0 else ' ', line)
+        if context.args.result_files_only:
+            for result in results:
+                print(result.path)
+        else:
+            for result in results:
+                print(result)
+                if context.args.verbose:
+                    for detail in result.details:
+                        for i, line in enumerate(detail.splitlines()):
+                            print('-' if i == 0 else ' ', line)
 
         summary = Result('Summary')
         for result in all_results:
             summary.add_result(result)
 
-        if results:
-            print()
-        print(summary)
+        if not context.args.result_files_only:
+            if results:
+                print()
+            print(summary)
 
         return 1 if summary.error_count or summary.failure_count else 0
 
