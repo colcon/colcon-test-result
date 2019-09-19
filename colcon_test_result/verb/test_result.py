@@ -32,12 +32,12 @@ class TestResultVerb(VerbExtensionPoint):
         parser.add_argument(
             '--all',
             action='store_true',
-            help='Show all test result file (even without errors / failures)')
+            help='Show all test result files (even without errors / failures)')
         parser.add_argument(
             '--result-files-only',
             action='store_true',
-            help='Print only the path to the result files. '
-                 'Use with --all to get files without errors / failures')
+            help='Print only the paths of the result files. '
+                 'Use with --all to include files without errors / failures')
         parser.add_argument(
             '--verbose',
             action='store_true',
