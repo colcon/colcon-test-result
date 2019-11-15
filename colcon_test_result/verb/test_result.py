@@ -34,14 +34,14 @@ class TestResultVerb(VerbExtensionPoint):
             action='store_true',
             help='Show all test result files (even without errors / failures)')
         parser.add_argument(
+            '--verbose',
+            action='store_true',
+            help='Show additional information for each error / failure')
+        parser.add_argument(
             '--result-files-only',
             action='store_true',
             help='Print only the paths of the result files. '
                  'Use with --all to include files without errors / failures')
-        parser.add_argument(
-            '--verbose',
-            action='store_true',
-            help='Show additional information for errors / failures')
         parser.add_argument(
             '--delete',
             action='store_true',
