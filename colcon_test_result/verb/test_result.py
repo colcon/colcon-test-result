@@ -1,7 +1,6 @@
 # Copyright 2016-2019 Dirk Thomas
 # Licensed under the Apache License, Version 2.0
 
-import argparse
 import os
 import sys
 
@@ -26,7 +25,6 @@ class TestResultVerb(VerbExtensionPoint):
     def add_arguments(self, *, parser):  # noqa: D102
         parser.add_argument(
             '--test-result-base',
-            type=_argparse_existing_dir,
             default='build',
             help='The base path for all test results (default: build)')
         parser.add_argument(
@@ -54,6 +52,16 @@ class TestResultVerb(VerbExtensionPoint):
             help='Same as --delete without an interactive confirmation')
 
     def main(self, *, context):  # noqa: D102
+        # this check can't be performed within a type callback of the argument
+        # since otherwise parse_unknown_args() already fails without the full
+        # argparse tree being constructed leading to an incomplete help message
+        if not os.path.exists(context.args.test_result_base):
+            return "The --test-result-base directory '%s' does not exist" % \
+                context.args.test_result_base
+        if not os.path.isdir(context.args.test_result_base):
+            return "The --test-result-base '%s' is not a directory" % \
+                context.args.test_result_base
+
         all_files = set() \
             if (context.args.delete or context.args.delete_yes) else None
         all_results = list(get_test_results(
@@ -106,14 +114,6 @@ class TestResultVerb(VerbExtensionPoint):
             print(summary)
 
         return 1 if summary.error_count or summary.failure_count else 0
-
-
-def _argparse_existing_dir(path):
-    if not os.path.exists(path):
-        raise argparse.ArgumentTypeError("Path '%s' does not exist" % path)
-    if not os.path.isdir(path):
-        raise argparse.ArgumentTypeError("Path '%s' is not a directory" % path)
-    return path
 
 
 def _safe_input(prompt=None):
