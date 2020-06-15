@@ -3,6 +3,7 @@ argparse
 basepath
 classname
 colcon
+contextlib
 etree
 github
 google

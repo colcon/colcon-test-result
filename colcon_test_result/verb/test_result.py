@@ -2,6 +2,7 @@
 # Licensed under the Apache License, Version 2.0
 
 import argparse
+from contextlib import suppress
 import os
 import sys
 
@@ -118,11 +119,9 @@ def _argparse_existing_dir(path):
 
 def _safe_input(prompt=None):
     # flush stdin before checking for input
-    try:
+    # skip if not supported on some platforms
+    with suppress(ImportError):
         from termios import tcflush
         from termios import TCIFLUSH
         tcflush(sys.stdin, TCIFLUSH)
-    except ImportError:
-        # fallback if not supported on some platforms
-        pass
     return input(prompt)
