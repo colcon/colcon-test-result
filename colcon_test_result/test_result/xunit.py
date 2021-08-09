@@ -69,7 +69,7 @@ def parse_xunit_xml(path, *, get_testcases=False):
     Parse an XML file and interpret it as a xUnit result file.
 
     See
-    https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#generating-an-xml-report
+    https://github.com/google/googletest/blob/master/docs/advanced.md#generating-an-xml-report
     for an example of the format.
 
     :param str path: the path of the XML file
