@@ -28,9 +28,9 @@ class XunitTestResult(TestResultExtensionPoint):
         satisfies_version(
             TestResultExtensionPoint.EXTENSION_POINT_VERSION, '^1.0')
 
-    def get_test_results(
+    def get_test_results(  # noqa: D102
         self, basepath, *, collect_details, files=None
-    ):  # noqa: D102
+    ):
         results = set()
 
         for dirpath, dirnames, filenames in os.walk(str(basepath)):
@@ -204,9 +204,9 @@ class Testcase:
 
     __test__ = False  # prevent the class to falsely be identified as a test
 
-    def __init__(
+    def __init__(  # noqa: D107
         self, *, classname=None, file_=None, line=None, name=None, time=None
-    ):  # noqa: D107
+    ):
         self.classname = classname
         self.file = file_
         self.line = line
