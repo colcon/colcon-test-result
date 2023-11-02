@@ -6,6 +6,7 @@ from contextlib import suppress
 import os
 import sys
 
+from colcon_core.argument_type import get_root_path_resolver
 from colcon_core.logging import colcon_logger
 from colcon_core.plugin_system import satisfies_version
 from colcon_core.verb import VerbExtensionPoint
@@ -110,6 +111,7 @@ class TestResultVerb(VerbExtensionPoint):
 
 
 def _argparse_existing_dir(path):
+    path = get_root_path_resolver()(path)
     if not os.path.exists(path):
         raise argparse.ArgumentTypeError("Path '%s' does not exist" % path)
     if not os.path.isdir(path):
