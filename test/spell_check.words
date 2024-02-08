@@ -10,9 +10,11 @@ google
 googletest
 https
 iterdir
+linter
 noqa
 pathlib
 plugin
+pydocstyle
 pytest
 rtype
 scspell
