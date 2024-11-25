@@ -1,7 +1,6 @@
 # Copyright 2016-2019 Dirk Thomas
 # Licensed under the Apache License, Version 2.0
 
-import argparse
 from contextlib import suppress
 import os
 import sys
@@ -27,7 +26,6 @@ class TestResultVerb(VerbExtensionPoint):
     def add_arguments(self, *, parser):  # noqa: D102
         parser.add_argument(
             '--test-result-base',
-            type=_argparse_existing_dir,
             default='build',
             help='The base path for all test results (default: build)')
         parser.add_argument(
@@ -55,6 +53,8 @@ class TestResultVerb(VerbExtensionPoint):
             help='Same as --delete without an interactive confirmation')
 
     def main(self, *, context):  # noqa: D102
+        _verify_dir_exists(context.args.test_result_base)
+
         all_files = set() \
             if (context.args.delete or context.args.delete_yes) else None
         all_results = list(get_test_results(
@@ -109,11 +109,11 @@ class TestResultVerb(VerbExtensionPoint):
         return 1 if summary.error_count or summary.failure_count else 0
 
 
-def _argparse_existing_dir(path):
+def _verify_dir_exists(path):
     if not os.path.exists(path):
-        raise argparse.ArgumentTypeError("Path '%s' does not exist" % path)
+        raise RuntimeError("Path '%s' does not exist" % path)
     if not os.path.isdir(path):
-        raise argparse.ArgumentTypeError("Path '%s' is not a directory" % path)
+        raise RuntimeError("Path '%s' is not a directory" % path)
     return path
 
 
